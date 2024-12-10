@@ -34,13 +34,40 @@ class Generator:
         # Create a shutdown event
         self.shutdown_event = threading.Event()
 
-    def _is_shutting_down(self):
-        """ Returns True if shutdown_event event was triggered
+    def _check_off_track(self):
+        """Check to see if an off track safety car event should be triggered.
         
         Args:
             None
         """
-        return self.shutdown_event.is_set()
+        logging.debug("Checking off track safety car event")
+
+        # Get relevant settings from the settings file
+        enabled = self.master.settings["settings"]["off"]
+        threshold = float(self.master.settings["settings"]["off_min"])
+        message = self.master.settings["settings"]["off_message"]
+
+        # If off track events are disabled, return
+        if enabled == "0":
+            return
+
+        # Get the indices of the off track cars
+        off_track_cars = []
+        for i in range(len(self.drivers.current_drivers)):
+            if self.drivers.current_drivers[i]["track_loc"] == 0:
+                off_track_cars.append(i)
+
+        # For each off track car, check if lap distance < 0, remove if so
+        cars_to_remove = []
+        for car in off_track_cars:
+            if self.drivers.current_drivers[car]["lap_distance"] < 0:
+                cars_to_remove.append(car)
+        for car in cars_to_remove:
+            off_track_cars.remove(car)
+
+        # Trigger the safety car event if threshold is met
+        if len(off_track_cars) >= threshold:
+            self._start_safety_car(message)
 
     def _check_random(self):
         """Check to see if a random safety car event should be triggered.
@@ -145,40 +172,27 @@ class Generator:
         if len(stopped_cars) >= threshold:
             self._start_safety_car(message)
 
-    def _check_off_track(self):
-        """Check to see if an off track safety car event should be triggered.
+    def _get_current_lap_under_sc(self):
+        """Get the current lap under safety car for each car on the track.
         
         Args:
             None
         """
-        logging.debug("Checking off track safety car event")
+        logging.debug("Getting current laps under safety car")
 
-        # Get relevant settings from the settings file
-        enabled = self.master.settings["settings"]["off"]
-        threshold = float(self.master.settings["settings"]["off_min"])
-        message = self.master.settings["settings"]["off_message"]
+        # Zip the CarIdxLap and CarIdxOnPitRoad arrays together
+        current_lap_numbers = zip(
+            self.ir["CarIdxLap"],
+            self.ir["CarIdxOnPitRoad"]
+        )
 
-        # If off track events are disabled, return
-        if enabled == "0":
-            return
+        # If pit road value is True, remove it, keeping only laps
+        current_lap_numbers = [
+            car[0] for car in current_lap_numbers if car[1] == False
+        ]
 
-        # Get the indices of the off track cars
-        off_track_cars = []
-        for i in range(len(self.drivers.current_drivers)):
-            if self.drivers.current_drivers[i]["track_loc"] == 0:
-                off_track_cars.append(i)
-
-        # For each off track car, check if lap distance < 0, remove if so
-        cars_to_remove = []
-        for car in off_track_cars:
-            if self.drivers.current_drivers[car]["lap_distance"] < 0:
-                cars_to_remove.append(car)
-        for car in cars_to_remove:
-            off_track_cars.remove(car)
-
-        # Trigger the safety car event if threshold is met
-        if len(off_track_cars) >= threshold:
-            self._start_safety_car(message)
+        # Find the highest value in the list
+        self.current_lap_under_sc = max(current_lap_numbers)
 
     def _get_driver_index(self, number):
         """Get the driver index from the iRacing SDK.
@@ -217,28 +231,14 @@ class Generator:
                 
         # If the driver number wasn't found, return None
         return None
-    
-    def _get_current_lap_under_sc(self):
-        """Get the current lap under safety car for each car on the track.
+
+    def _is_shutting_down(self):
+        """ Returns True if shutdown_event event was triggered
         
         Args:
             None
         """
-        logging.debug("Getting current laps under safety car")
-
-        # Zip the CarIdxLap and CarIdxOnPitRoad arrays together
-        current_lap_numbers = zip(
-            self.ir["CarIdxLap"],
-            self.ir["CarIdxOnPitRoad"]
-        )
-
-        # If pit road value is True, remove it, keeping only laps
-        current_lap_numbers = [
-            car[0] for car in current_lap_numbers if car[1] == False
-        ]
-
-        # Find the highest value in the list
-        self.current_lap_under_sc = max(current_lap_numbers)
+        return self.shutdown_event.is_set()
 
     def _loop(self):
         """Main loop for the safety car generator.
