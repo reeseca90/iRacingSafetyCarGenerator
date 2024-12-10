@@ -612,8 +612,7 @@ class Generator:
         self._wait_for_conditions(require_race_session=False)
 
     def _wait_for_conditions(self, require_race_session=True):
-        """Wait for required conditions (race session and green flag) 
-        using the new methods.
+        """Wait for required conditions (race session and green flag).
         
         Args:
             require_race_session (bool): If True, wait until race session.
