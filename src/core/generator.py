@@ -622,14 +622,18 @@ class Generator:
         # If required, wait for race session
         if require_race_session:
             logging.info("Waiting for race session")
-            self.master.set_message("Connected to iRacing\nWaiting for race session...")
+            self.master.set_message(
+                "Connected to iRacing\nWaiting for race session..."
+            )
             while not self._is_shutting_down():
                 if self._check_for_race_session():
                     break
                 time.sleep(1)
 
         # Wait for green flag
-        self.master.set_message("Connected to iRacing\nWaiting for green flag...")
+        self.master.set_message(
+            "Connected to iRacing\nWaiting for green flag..."
+        )
         while not self._is_shutting_down():
             if self._check_for_green_flag():
                 self._on_green_flag()
