@@ -596,6 +596,11 @@ class Generator:
             if not done["pace_laps"]:
                 done["pace_laps"] = self._send_pacelaps()
 
+            # If green flag is displayed, run the green flag actions and return
+            if self._check_for_green_flag():
+                self._on_green_flag()
+                return
+
             # Break the loop if we are shutting down the thread
             if self._is_shutting_down():
                 break
