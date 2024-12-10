@@ -603,8 +603,8 @@ class Generator:
             # Wait 1 second before checking again
             time.sleep(1)
 
-        # Wait for the green flag to be displayed
-        self._wait_for_green_flag(require_race_session=False)
+        # Wait for the green flag to be displayed if the previous loop is done
+        self._wait_for_conditions(require_race_session=False)
 
     def _wait_for_conditions(self, require_race_session=True):
         """Wait for required conditions (race session and green flag) 
