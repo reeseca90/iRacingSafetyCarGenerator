@@ -34,6 +34,34 @@ class Generator:
         # Create a shutdown event
         self.shutdown_event = threading.Event()
 
+    def _check_for_green_flag(self):
+        """Check if the green flag is currently displayed.
+        
+        Returns:
+            bool: True if green flag is displayed, otherwise False.
+        """
+        return bool(self.ir["SessionFlags"] & irsdk.Flags.green)
+
+    def _check_for_race_session(self):
+        """Check if the current session is a race session.
+        
+        Returns:
+            bool: True if in a race session, otherwise False.
+        """
+        # Get the list of sessions
+        session_list = self.ir["SessionInfo"]["Sessions"]
+
+        # Create a dict of session names by index
+        sessions = {}
+        for i, session in enumerate(session_list):
+            sessions[i] = session["SessionName"]
+
+        # Get the current session index
+        current_idx = self.ir["SessionNum"]
+
+        # Return True if current session is not PRACTICE, QUALIFY, or WARMUP
+        return sessions[current_idx] not in ["PRACTICE", "QUALIFY", "WARMUP"]
+
     def _check_off_track(self):
         """Check to see if an off track safety car event should be triggered.
         
@@ -299,6 +327,17 @@ class Generator:
         # Shutdown the iRacing SDK after all safety car events are complete
         self.ir.shutdown()
 
+    def _on_green_flag(self):
+        """Actions to perform once a green flag is detected."""
+        # Set the start time if it hasn't been set yet
+        if self.start_time is None:
+            self.start_time = time.time()
+
+        # Set the UI message
+        self.master.set_message(
+            "Connected to iRacing\nGenerating safety cars..."
+        )
+
     def _send_delayed_wave_arounds(self):
         """Send the delayed wave arounds to iRacing if there are any.
         
@@ -563,6 +602,32 @@ class Generator:
 
         # Wait for the green flag to be displayed
         self._wait_for_green_flag(require_race_session=False)
+
+    def _wait_for_conditions(self, require_race_session=True):
+        """Wait for required conditions (race session and green flag) 
+        using the new methods.
+        
+        Args:
+            require_race_session (bool): If True, wait until race session.
+        """
+        logging.info("Waiting for conditions")
+
+        # If required, wait for race session
+        if require_race_session:
+            logging.info("Waiting for race session")
+            self.master.set_message("Connected to iRacing\nWaiting for race session...")
+            while not self._is_shutting_down():
+                if self._check_for_race_session():
+                    break
+                time.sleep(1)
+
+        # Wait for green flag
+        self.master.set_message("Connected to iRacing\nWaiting for green flag...")
+        while not self._is_shutting_down():
+            if self._check_for_green_flag():
+                self._on_green_flag()
+                break
+            time.sleep(1)
 
     def _wait_for_green_flag(self, require_race_session=True):
         """Wait for the green flag to be displayed.
