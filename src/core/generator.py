@@ -287,8 +287,8 @@ class Generator:
             logging.debug("Adjusting start minute to 0.05")
             start_minute = 0.05
 
-        # Wait for the green flag
-        self._wait_for_green_flag()
+        # Wait for the race session & green flag
+        self._wait_for_conditions(require_race_session=True)
 
         # Loop until the max number of safety car events is reached
         while self.total_sc_events < max_events:
