@@ -333,6 +333,9 @@ class Generator:
         if self.start_time is None:
             self.start_time = time.time()
 
+        # Clear delayed wave around list
+        self.delayed_wave_arounds.clear()
+
         # Set the UI message
         self.master.set_message(
             "Connected to iRacing\nGenerating safety cars..."
