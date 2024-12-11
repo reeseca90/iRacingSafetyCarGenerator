@@ -518,7 +518,11 @@ class Generator:
                 driver_number = self._get_driver_number(i)
 
             # If the driver number is not None, add it to the list
-            if driver_number is not None:
+            if driver_number is not None: 
+                # If car is not in world, skip
+                if self.ir["CarIdxTrackSurface"][i] == -1:
+                    continue
+
                 # Delay wave to cars in pits if delayed waves are enabled
                 if self.master.settings["settings"]["delay_waves"] == "1":
                     # If the driver is in the pits, delay the wave around
